@@ -3,6 +3,7 @@
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QProcess>
+#include <QTimer>
 #include <KLocalizedString>
 #include <KNotification>
 #include <KRunner/QueryMatch>
@@ -43,19 +44,42 @@ void TranslatorRunner::match(KRunner::RunnerContext &context)
         return;
     }
 
-    const QString translation = translateText(text, targetLang);
-    if (translation.isEmpty()) {
-        return;
-    }
+    auto *process = new QProcess(this);
 
-    KRunner::QueryMatch match(this);
-    match.setText(translation);
-    match.setSubtext(i18n("Translate to %1: %2", targetLang.toUpper(), text));
-    match.setIconName(QStringLiteral("translator"));
-    match.setRelevance(1.0);
-    match.setData(translation);
+    // Kill the process if it exceeds the timeout
+    QTimer::singleShot(TRANSLATE_TIMEOUT_MS, process, [process]() {
+        if (process->state() != QProcess::NotRunning) {
+            process->kill();
+        }
+    });
 
-    context.addMatch(match);
+    connect(process, &QProcess::finished, this,
+            [this, process, context, text, targetLang](int exitCode) mutable {
+                process->deleteLater();
+
+                if (exitCode != 0 || !context.isValid()) {
+                    return;
+                }
+
+                const QString translation =
+                    QString::fromUtf8(process->readAllStandardOutput()).trimmed();
+
+                if (translation.isEmpty() || !context.isValid()) {
+                    return;
+                }
+
+                KRunner::QueryMatch match(this);
+                match.setText(translation);
+                match.setSubtext(i18n("Translate to %1: %2", targetLang.toUpper(), text));
+                match.setIconName(QStringLiteral("translator"));
+                match.setRelevance(1.0);
+                match.setData(translation);
+
+                context.addMatch(match);
+            });
+
+    process->start(QStringLiteral("trans"),
+                   {QStringLiteral(":%1").arg(targetLang), text, QStringLiteral("-b")});
 }
 
 void TranslatorRunner::run(const KRunner::RunnerContext &context,
@@ -70,24 +94,6 @@ void TranslatorRunner::run(const KRunner::RunnerContext &context,
 
     copyToClipboard(translation);
     showNotification(i18n("Translation copied"), translation);
-}
-
-QString TranslatorRunner::translateText(const QString &text, const QString &targetLang)
-{
-    QProcess process;
-    process.start(QStringLiteral("trans"),
-                  {QStringLiteral(":%1").arg(targetLang), text, QStringLiteral("-b")});
-
-    if (!process.waitForFinished(TRANSLATE_TIMEOUT_MS)) {
-        process.kill();
-        return QString();
-    }
-
-    if (process.exitCode() != 0) {
-        return QString();
-    }
-
-    return QString::fromUtf8(process.readAllStandardOutput()).trimmed();
 }
 
 void TranslatorRunner::copyToClipboard(const QString &text)

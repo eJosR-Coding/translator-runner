@@ -15,7 +15,6 @@ public:
              const KRunner::QueryMatch &match) override;
 
 private:
-    QString translateText(const QString &text, const QString &targetLang);
     void copyToClipboard(const QString &text);
     void showNotification(const QString &title, const QString &message);
 
