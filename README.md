@@ -143,7 +143,7 @@ Then open **System Settings → Search → Plasma Search**, find **Translator Ru
 - [x] Clipboard copy on selection
 - [x] KDE notification on copy
 - [ ] Async translation (non-blocking)
-- [ ] DeepL API backend (optional, requires API key)
+- [ ] Multi-script support (Russian, Chinese, Japanese, Arabic, Portuguese, etc.)
 - [ ] Translation history
 - [ ] Configuration UI in System Settings
 
