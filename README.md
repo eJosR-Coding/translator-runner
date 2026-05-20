@@ -33,8 +33,15 @@ Press `Alt+Space` to open KRunner, then:
 | `tr-fr:good morning` | Translates to French |
 | `tr-de:hello` | Translates to German |
 | `tr-ja:hello` | Translates to Japanese |
+| `tr-ru:hello` | Translates to Russian (Cyrillic) |
+| `tr-zh:hello` | Translates to Chinese (Simplified) |
+| `tr-ar:hello` | Translates to Arabic |
+| `tr-qu:hello` | Translates to Quechua |
+| `tr-ay:hello` | Translates to Aymara |
 
-Any [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes) works after `tr-`.
+Any [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes) works after `tr-`, including regional variants like `tr-zh-TW:` or `tr-pt-BR:`.
+
+**Shorthand aliases:** `tr-cn:` → Chinese, `tr-jp:` → Japanese, `tr-br:` → Portuguese, `tr-kr:` → Korean.
 
 Click the result → translation is copied to your clipboard + a KDE notification confirms it.
 
@@ -142,8 +149,12 @@ Then open **System Settings → Search → Plasma Search**, find **Translator Ru
 - [x] Multi-language support (`tr-XX:` syntax)
 - [x] Clipboard copy on selection
 - [x] KDE notification on copy
-- [ ] Async translation (non-blocking)
-- [ ] Multi-script support (Russian, Chinese, Japanese, Arabic, Portuguese, etc.)
+- [x] Async translation (non-blocking)
+- [x] Multi-script support — Cyrillic, CJK, Arabic, Hebrew, Thai, Devanagari, Quechua, Aymara and more
+- [x] Language aliases (`tr-cn:`, `tr-jp:`, `tr-br:`, `tr-kr:`)
+- [x] Regional variants (`tr-zh-TW:`, `tr-pt-BR:`)
+- [ ] Local text transforms (`fx-bin:`, `fx-hex:`, `fx-b64:`, `fx-morse:`, `fx-rev:`)
+- [ ] Fun filters (`fun-uwu:`, `fun-cheems:`)
 - [ ] Translation history
 - [ ] Configuration UI in System Settings
 
