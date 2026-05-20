@@ -10,7 +10,7 @@
 
 ## What is it?
 
-**Translator Runner** is a [KRunner](https://userbase.kde.org/Plasma/Krunner) plugin for KDE Plasma 6. It lets you translate text without leaving your keyboard — open the launcher, type your query, and the translation appears instantly. Click it and it's in your clipboard.
+**Translator Runner** is a [KRunner](https://userbase.kde.org/Plasma/Krunner) plugin for KDE Plasma 6. It lets you translate text and transform it without leaving your keyboard — open the launcher, type your query, and the result appears instantly. Click it and it's in your clipboard.
 
 No browser tab. No switching apps. Just `Alt+Space` and type.
 
@@ -23,6 +23,8 @@ The widely-used `krunner-translator` plugin broke on Plasma 6.6+ / Qt 6.10, cras
 ---
 
 ## Usage
+
+### Translation
 
 Press `Alt+Space` to open KRunner, then:
 
@@ -41,9 +43,34 @@ Press `Alt+Space` to open KRunner, then:
 
 Any [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes) works after `tr-`, including regional variants like `tr-zh-TW:` or `tr-pt-BR:`.
 
-**Shorthand aliases:** `tr-cn:` → Chinese, `tr-jp:` → Japanese, `tr-br:` → Portuguese, `tr-kr:` → Korean.
+**Shorthand aliases:** `tr-cn:` → Chinese · `tr-jp:` → Japanese · `tr-br:` → Portuguese · `tr-kr:` → Korean.
 
 Click the result → translation is copied to your clipboard + a KDE notification confirms it.
+
+---
+
+### Local text transforms
+
+These run entirely inside the plugin — no network, no subprocess, instant results.
+
+| Syntax | What it does | Example |
+|---|---|---|
+| `fx-bin:<text>` | Converts text to binary | `fx-bin:hi` → `01101000 01101001` |
+| `fx-hex:<text>` | Converts text to hexadecimal | `fx-hex:hi` → `68 69` |
+| `fx-b64:<text>` | Encodes text as Base64 | `fx-b64:hello` → `aGVsbG8=` |
+| `fx-morse:<text>` | Converts text to Morse code | `fx-morse:sos` → `... --- ...` |
+| `fx-rev:<text>` | Reverses the text | `fx-rev:hello` → `olleh` |
+
+---
+
+### Fun filters
+
+| Syntax | What it does | Example |
+|---|---|---|
+| `fun-uwu:<text>` | Applies uwu-style text filter | `fun-uwu:hello world` → `hewwo wowwd` |
+| `fun-cheems:<text>` | Applies Cheems meme filter | `fun-cheems:hola mundo` → `homla mumdo` |
+
+The Cheems filter inserts `m` before consonants that follow vowel sequences, matching the algorithm from [cheemsify](https://github.com/Xeroth-20/cheemsify). Supports accented vowels (á, é, í, ó, ú) for Spanish text.
 
 ---
 
@@ -68,6 +95,8 @@ sequenceDiagram
     Plugin-->>User: clipboard updated + notification
 ```
 
+For `fx-` and `fun-` queries the flow is the same but the plugin computes the result locally — no CLI call.
+
 ---
 
 ## How it works
@@ -76,20 +105,21 @@ Translator Runner sits inside KRunner as a shared library (`.so`). When KRunner 
 
 ```mermaid
 flowchart TD
-    A[User types in KRunner] --> B[Query sent to all plugins in parallel]
-    B --> C{Starts with 'tr:' or 'tr-lang:'?}
-    C -- No --> D[Plugin ignores it]
-    C -- Yes --> E[Extract language and text]
-    E --> F[Run: trans :lang text -b]
-    F --> G{Translation successful?}
-    G -- No --> D
-    G -- Yes --> H[Return result to KRunner]
+    A[User types in KRunner] --> B{Query prefix?}
+    B -- tr: / tr-lang: --> C[Async subprocess: trans CLI]
+    B -- fx-mode: --> D[Local transform: bin / hex / b64 / morse / rev]
+    B -- fun-mode: --> E[Local filter: uwu / cheems]
+    B -- other --> F[Plugin ignores it]
+    C --> G{Result valid?}
+    G -- Yes --> H[Add match to KRunner]
+    G -- No --> F
+    D --> H
+    E --> H
     H --> I[User clicks result]
-    I --> J[Copy to clipboard]
-    J --> K[Show KDE notification]
+    I --> J[Copy to clipboard + notification]
 ```
 
-The translation itself is handled by [translate-shell](https://github.com/soimort/translate-shell) (`trans`), a command-line tool that supports Google Translate, Bing, and DeepL as backends. The plugin spawns it as a subprocess, captures the output, and surfaces it as a KRunner result.
+The translation itself is handled by [translate-shell](https://github.com/soimort/translate-shell) (`trans`), a command-line tool that supports Google Translate, Bing, and DeepL as backends. The plugin spawns it as an async subprocess, captures the output, and surfaces it as a KRunner result. Local transforms and fun filters are computed entirely in C++ with no external dependencies.
 
 ---
 
@@ -101,7 +131,7 @@ The translation itself is handled by [translate-shell](https://github.com/soimor
 | Plugin registration | `KF6::CoreAddons` |
 | Notifications | `KF6::Notifications` |
 | Internationalization | `KF6::I18n` |
-| Qt layer | Qt 6 — `QProcess`, `QClipboard`, `QString` |
+| Qt layer | Qt 6 — `QProcess`, `QClipboard`, `QString`, `QRegularExpression` |
 | Translation backend | [translate-shell](https://github.com/soimort/translate-shell) (`trans` CLI) |
 | Build system | CMake 3.20+ with Extra CMake Modules (ECM) |
 | Language | C++17 |
@@ -153,8 +183,8 @@ Then open **System Settings → Search → Plasma Search**, find **Translator Ru
 - [x] Multi-script support — Cyrillic, CJK, Arabic, Hebrew, Thai, Devanagari, Quechua, Aymara and more
 - [x] Language aliases (`tr-cn:`, `tr-jp:`, `tr-br:`, `tr-kr:`)
 - [x] Regional variants (`tr-zh-TW:`, `tr-pt-BR:`)
-- [ ] Local text transforms (`fx-bin:`, `fx-hex:`, `fx-b64:`, `fx-morse:`, `fx-rev:`)
-- [ ] Fun filters (`fun-uwu:`, `fun-cheems:`)
+- [x] Local text transforms (`fx-bin:`, `fx-hex:`, `fx-b64:`, `fx-morse:`, `fx-rev:`)
+- [x] Fun filters (`fun-uwu:`, `fun-cheems:`)
 - [ ] Translation history
 - [ ] Configuration UI in System Settings
 
