@@ -1,0 +1,9 @@
+[Global]
+IconName=translator
+Name=Translator Runner
+Comment=Notifications from Translator Runner KRunner plugin
+
+[Event/translationCopied]
+Name=Translation copied
+Comment=A translation was copied to clipboard
+Action=Popup

@@ -1,0 +1,31 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "eJosR-Coding"
+            }
+        ],
+        "Description": "Translate text using translate-shell — supports Google Translate, Bing, DeepL backends",
+        "Description[es]": "Traducción de texto usando translate-shell",
+        "Icon": "translator",
+        "Id": "translatorrunner",
+        "License": "GPL-3.0-or-later",
+        "Name": "Translator Runner",
+        "Name[es]": "Traductor",
+        "Version": "0.1.0",
+        "Website": "https://github.com/eJosR-Coding/translator-runner"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "KRunner": {
+        "Syntaxes": [
+            {
+                "Syntax": "tr:<text>",
+                "Description": "Translate text to English (default)"
+            },
+            {
+                "Syntax": "tr-<lang>:<text>",
+                "Description": "Translate to specific language (tr-es:, tr-fr:, tr-de:, etc.)"
+            }
+        ]
+    }
+}

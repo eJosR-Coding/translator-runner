@@ -1,0 +1,40 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:44
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          dnf install -y \
+            gcc-c++ cmake extra-cmake-modules \
+            qt6-qtbase-devel \
+            kf6-krunner-devel kf6-kcoreaddons-devel \
+            kf6-ki18n-devel kf6-knotifications-devel
+
+      - name: Configure
+        run: |
+          mkdir build
+          cd build
+          cmake -DCMAKE_INSTALL_PREFIX=/usr ..
+
+      - name: Build
+        run: |
+          cd build
+          make -j$(nproc)
+
+      - name: Verify output
+        run: |
+          find build -name "*.so" -exec ls -la {} \;
+          find build -name "*.so" -exec file {} \;
