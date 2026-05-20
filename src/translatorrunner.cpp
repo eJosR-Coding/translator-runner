@@ -5,8 +5,10 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QTimer>
+#include <KConfigGroup>
 #include <KLocalizedString>
 #include <KNotification>
+#include <KSharedConfig>
 #include <KRunner/QueryMatch>
 
 // ── Static tables ──────────────────────────────────────────────────────────
@@ -117,7 +119,12 @@ void TranslatorRunner::match(KRunner::RunnerContext &context)
     // tr:<text>
     if (query.startsWith(QLatin1String(TRIGGER_TRANSLATE))) {
         const QString text = query.mid(3).trimmed();
-        if (!text.isEmpty()) matchTranslation(context, text, QStringLiteral("en"));
+        if (!text.isEmpty()) {
+            const auto cfg  = KSharedConfig::openConfig(QStringLiteral("translatorrunnerrc"));
+            const auto grp  = cfg->group(QStringLiteral("General"));
+            const QString defaultLang = grp.readEntry("DefaultLanguage", QStringLiteral("en"));
+            matchTranslation(context, text, defaultLang);
+        }
         return;
     }
 }
