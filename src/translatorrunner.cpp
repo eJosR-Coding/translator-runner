@@ -3,10 +3,20 @@
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QProcess>
+#include <QRegularExpression>
 #include <QTimer>
 #include <KLocalizedString>
 #include <KNotification>
 #include <KRunner/QueryMatch>
+
+const QHash<QString, QString> TranslatorRunner::LANG_ALIASES = {
+    {QStringLiteral("cn"), QStringLiteral("zh")},   // Chinese (common shortcut)
+    {QStringLiteral("jp"), QStringLiteral("ja")},   // Japanese (common shortcut)
+    {QStringLiteral("br"), QStringLiteral("pt")},   // Brazilian Portuguese
+    {QStringLiteral("kr"), QStringLiteral("ko")},   // Korean (common shortcut)
+    {QStringLiteral("ua"), QStringLiteral("uk")},   // Ukrainian
+    {QStringLiteral("gr"), QStringLiteral("el")},   // Greek
+};
 
 TranslatorRunner::TranslatorRunner(QObject *parent, const KPluginMetaData &metaData)
     : KRunner::AbstractRunner(parent, metaData)
@@ -17,6 +27,27 @@ TranslatorRunner::TranslatorRunner(QObject *parent, const KPluginMetaData &metaD
               i18n("Translate text to specific language"));
 
     setMinLetterCount(4);
+}
+
+QString TranslatorRunner::resolveLanguage(const QString &code) const
+{
+    const QString lower = code.toLower();
+
+    // Resolve common aliases first
+    if (LANG_ALIASES.contains(lower)) {
+        return LANG_ALIASES.value(lower);
+    }
+
+    // Validate: accept ISO 639-1 (2 chars), ISO 639-2 (3 chars),
+    // and regional variants like zh-TW, pt-BR, zh-Hans
+    static const QRegularExpression validCode(
+        QStringLiteral("^[a-z]{2,3}(-[a-zA-Z]{2,4})?$"));
+
+    if (!validCode.match(lower).hasMatch()) {
+        return QString();
+    }
+
+    return lower;
 }
 
 void TranslatorRunner::match(KRunner::RunnerContext &context)
@@ -31,7 +62,13 @@ void TranslatorRunner::match(KRunner::RunnerContext &context)
         if (colonIdx < 5) {
             return;
         }
-        targetLang = query.mid(3, colonIdx - 3);
+        const QString rawLang = query.mid(3, colonIdx - 3);
+        targetLang = resolveLanguage(rawLang);
+
+        if (targetLang.isEmpty()) {
+            return;
+        }
+
         text = query.mid(colonIdx + 1).trimmed();
     } else if (query.startsWith(QLatin1String(TRIGGER_DEFAULT))) {
         targetLang = QStringLiteral("en");
@@ -46,7 +83,6 @@ void TranslatorRunner::match(KRunner::RunnerContext &context)
 
     auto *process = new QProcess(this);
 
-    // Kill the process if it exceeds the timeout
     QTimer::singleShot(TRANSLATE_TIMEOUT_MS, process, [process]() {
         if (process->state() != QProcess::NotRunning) {
             process->kill();
