@@ -1,0 +1,16 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "eJosR-Coding"
+            }
+        ],
+        "Description": "Configure Translator Runner default language",
+        "Icon": "translator",
+        "Id": "kcm_translatorrunner",
+        "License": "GPL-3.0-or-later",
+        "Name": "Translator Runner",
+        "Version": "0.4.0"
+    },
+    "X-KDE-System-Settings-Category": "search"
+}
