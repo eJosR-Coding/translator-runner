@@ -17,6 +17,7 @@
     },
     "X-Plasma-API-Minimum-Version": "6.0",
     "KRunner": {
+        "ConfigModule": "kcm_translatorrunner",
         "Syntaxes": [
             {
                 "Syntax": "tr:<text>",
