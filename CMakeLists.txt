@@ -88,6 +88,11 @@ target_include_directories(kcm_translatorrunner PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+# ── History viewer script ─────────────────────────────────────────────────
+install(PROGRAMS src/translatorrunner-history
+    DESTINATION ${KDE_INSTALL_BINDIR}
+)
+
 message(STATUS "─────────────────────────────────────────")
 message(STATUS "Project: ${PROJECT_NAME} v${PROJECT_VERSION}")
 message(STATUS "Qt6: ${Qt6_VERSION}")
