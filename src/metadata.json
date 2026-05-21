@@ -12,11 +12,12 @@
         "License": "GPL-3.0-or-later",
         "Name": "Translator Runner",
         "Name[es]": "Traductor",
-        "Version": "0.1.0",
+        "Version": "0.4.0",
         "Website": "https://github.com/eJosR-Coding/translator-runner"
     },
     "X-Plasma-API-Minimum-Version": "6.0",
     "KRunner": {
+        "ConfigModule": "kcm_translatorrunner",
         "Syntaxes": [
             {
                 "Syntax": "tr:<text>",

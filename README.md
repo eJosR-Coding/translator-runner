@@ -185,8 +185,8 @@ Then open **System Settings → Search → Plasma Search**, find **Translator Ru
 - [x] Regional variants (`tr-zh-TW:`, `tr-pt-BR:`)
 - [x] Local text transforms (`fx-bin:`, `fx-hex:`, `fx-b64:`, `fx-morse:`, `fx-rev:`)
 - [x] Fun filters (`fun-uwu:`, `fun-cheems:`)
-- [ ] Translation history
-- [ ] Configuration UI in System Settings
+- [x] Configuration UI in System Settings (default language selector)
+- [ ] Translation history viewer
 
 ---
 

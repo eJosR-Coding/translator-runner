@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Translator Runner — history viewer."""
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+HISTORY_FILE = Path.home() / ".local/share/translatorrunner/history.json"
+TITLE = "Translator Runner — History"
+
+
+def load():
+    if not HISTORY_FILE.exists():
+        return []
+    try:
+        return json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+
+def save(entries):
+    HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    HISTORY_FILE.write_text(
+        json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+def kdialog(*args):
+    r = subprocess.run(["kdialog", "--title", TITLE, *args],
+                       capture_output=True, text=True)
+    return r.returncode, r.stdout.strip()
+
+
+def main():
+    entries = load()
+
+    if not entries:
+        kdialog("--msgbox", "No translation history yet.\n\nUse  tr:text  in KRunner to start translating.")
+        return
+
+    # Show all entries as a checklist — check the ones you want to DELETE
+    items = []
+    for i, e in enumerate(entries):
+        label = f"{e.get('text','')}  ->  {e.get('result','')}  [{e.get('lang','').upper()}]"
+        items += [str(i), label, "off"]
+
+    code, output = kdialog(
+        "--checklist",
+        f"{len(entries)} translations stored.\nCheck entries to DELETE, then click OK.\nLeave all unchecked to keep everything.",
+        *items,
+        "--ok-label", "Delete checked",
+        "--cancel-label", "Clear ALL"
+    )
+
+    if code == 1:
+        # "Clear ALL" button (Cancel)
+        r, _ = kdialog("--yesno", "Delete ALL translation history?\nThis cannot be undone.")
+        if r == 0:
+            save([])
+            kdialog("--passivepopup", "History cleared.", "3")
+        return
+
+    if code == 0:
+        if not output:
+            return  # nothing checked, do nothing
+
+        to_delete = set(output.replace('"', '').split())
+        remaining = [e for i, e in enumerate(entries) if str(i) not in to_delete]
+        save(remaining)
+        deleted = len(entries) - len(remaining)
+        kdialog("--passivepopup", f"Deleted {deleted} entr{'y' if deleted==1 else 'ies'}.", "3")
+
+
+if __name__ == "__main__":
+    main()

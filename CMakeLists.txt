@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(translator-runner
-    VERSION 0.1.0
+    VERSION 0.4.0
     DESCRIPTION "KRunner plugin for translating text via translate-shell"
     LANGUAGES CXX
 )
@@ -39,6 +39,7 @@ find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS
     CoreAddons
     I18n
     Notifications
+    KCMUtils
 )
 
 kcoreaddons_add_plugin(translatorrunner
@@ -55,6 +56,7 @@ target_link_libraries(translatorrunner PRIVATE
     KF6::CoreAddons
     KF6::I18n
     KF6::Notifications
+    KF6::ConfigCore
 )
 
 target_include_directories(translatorrunner PRIVATE
@@ -63,6 +65,32 @@ target_include_directories(translatorrunner PRIVATE
 
 install(FILES src/translatorrunner.notifyrc
     DESTINATION ${KDE_INSTALL_DATADIR}/knotifications6
+)
+
+# ── Settings KCM ─────────────────────────────────────────────────────────────
+kcoreaddons_add_plugin(kcm_translatorrunner
+    SOURCES
+        src/translatorrunnerkcm.cpp
+        src/translatorrunnerkcm.h
+    INSTALL_NAMESPACE "kf6/kcm"
+)
+
+target_link_libraries(kcm_translatorrunner PRIVATE
+    Qt6::Core
+    Qt6::Widgets
+    KF6::CoreAddons
+    KF6::I18n
+    KF6::KCMUtils
+    KF6::ConfigCore
+)
+
+target_include_directories(kcm_translatorrunner PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+# ── History viewer script ─────────────────────────────────────────────────
+install(PROGRAMS src/translatorrunner-history
+    DESTINATION ${KDE_INSTALL_BINDIR}
 )
 
 message(STATUS "─────────────────────────────────────────")

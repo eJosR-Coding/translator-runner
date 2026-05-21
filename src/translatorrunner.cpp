@@ -1,12 +1,22 @@
 #include "translatorrunner.h"
 
 #include <QClipboard>
+#include <QDateTime>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QGuiApplication>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QProcess>
 #include <QRegularExpression>
+#include <QStandardPaths>
 #include <QTimer>
+#include <KConfigGroup>
 #include <KLocalizedString>
 #include <KNotification>
+#include <KSharedConfig>
 #include <KRunner/QueryMatch>
 
 // ── Static tables ──────────────────────────────────────────────────────────
@@ -82,6 +92,18 @@ void TranslatorRunner::match(KRunner::RunnerContext &context)
         return;
     }
 
+    // trh: → open history window
+    if (query.startsWith(QLatin1String(TRIGGER_HISTORY))) {
+        KRunner::QueryMatch match(this);
+        match.setText(i18n("Translation History"));
+        match.setSubtext(i18n("Open history viewer and settings"));
+        match.setIconName(QStringLiteral("deep-history"));
+        match.setRelevance(1.0);
+        match.setData(QStringLiteral("open_history"));
+        context.addMatch(match);
+        return;
+    }
+
     // fx-<mode>:<text>
     if (query.startsWith(QLatin1String(TRIGGER_FX))) {
         const int colonIdx = query.indexOf(QLatin1Char(':'));
@@ -117,7 +139,12 @@ void TranslatorRunner::match(KRunner::RunnerContext &context)
     // tr:<text>
     if (query.startsWith(QLatin1String(TRIGGER_TRANSLATE))) {
         const QString text = query.mid(3).trimmed();
-        if (!text.isEmpty()) matchTranslation(context, text, QStringLiteral("en"));
+        if (!text.isEmpty()) {
+            const auto cfg  = KSharedConfig::openConfig(QStringLiteral("translatorrunnerrc"));
+            const auto grp  = cfg->group(QStringLiteral("General"));
+            const QString defaultLang = grp.readEntry("DefaultLanguage", QStringLiteral("en"));
+            matchTranslation(context, text, defaultLang);
+        }
         return;
     }
 }
@@ -144,12 +171,20 @@ void TranslatorRunner::matchTranslation(KRunner::RunnerContext &context,
                     QString::fromUtf8(process->readAllStandardOutput()).trimmed();
                 if (translation.isEmpty() || !context.isValid()) return;
 
+                // Store original text + lang + result so run() can save to history on click
+                QJsonObject info;
+                info[QStringLiteral("result")] = translation;
+                info[QStringLiteral("text")]   = text;
+                info[QStringLiteral("lang")]   = targetLang;
+                const QString data = QString::fromUtf8(
+                    QJsonDocument(info).toJson(QJsonDocument::Compact));
+
                 KRunner::QueryMatch match(this);
                 match.setText(translation);
                 match.setSubtext(i18n("Translate to %1: %2", targetLang.toUpper(), text));
                 match.setIconName(QStringLiteral("translator"));
                 match.setRelevance(1.0);
-                match.setData(translation);
+                match.setData(data);
                 context.addMatch(match);
             });
 
@@ -348,11 +383,74 @@ void TranslatorRunner::run(const KRunner::RunnerContext &context,
 {
     Q_UNUSED(context)
 
-    const QString text = match.data().toString();
-    if (text.isEmpty()) return;
+    const QString data = match.data().toString();
+    if (data.isEmpty()) return;
 
-    copyToClipboard(text);
-    showNotification(i18n("Copied to clipboard"), text);
+    if (data == QLatin1String("open_history")) {
+        QProcess::startDetached(QStringLiteral("translatorrunner-history"), {});
+        return;
+    }
+
+    // Translation result stored as JSON — save to history and copy
+    const QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8());
+    if (doc.isObject()) {
+        const QJsonObject obj = doc.object();
+        const QString result = obj[QStringLiteral("result")].toString();
+        const QString text   = obj[QStringLiteral("text")].toString();
+        const QString lang   = obj[QStringLiteral("lang")].toString();
+        saveToHistory(text, lang, result);
+        copyToClipboard(result);
+        showNotification(i18n("Translation copied"), result);
+        return;
+    }
+
+    // fx- and fun- results — just copy, no history
+    copyToClipboard(data);
+    showNotification(i18n("Copied to clipboard"), data);
+}
+
+void TranslatorRunner::saveToHistory(const QString &text,
+                                      const QString &lang,
+                                      const QString &result)
+{
+    const QString path = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
+                         + QStringLiteral("/translatorrunner/history.json");
+    QDir().mkpath(QFileInfo(path).absolutePath());
+
+    QJsonArray history;
+    QFile file(path);
+    if (file.open(QIODevice::ReadOnly)) {
+        const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        if (doc.isArray()) history = doc.array();
+        file.close();
+    }
+
+    // Remove duplicate
+    for (int i = 0; i < history.size(); ++i) {
+        const QJsonObject e = history[i].toObject();
+        if (e[QStringLiteral("text")].toString() == text &&
+            e[QStringLiteral("lang")].toString() == lang) {
+            history.removeAt(i);
+            break;
+        }
+    }
+
+    QJsonObject entry;
+    entry[QStringLiteral("text")]      = text;
+    entry[QStringLiteral("lang")]      = lang;
+    entry[QStringLiteral("result")]    = result;
+    entry[QStringLiteral("timestamp")] = QDateTime::currentDateTime().toString(Qt::ISODate);
+
+    QJsonArray updated;
+    updated.append(entry);
+    for (const auto &item : std::as_const(history))
+        updated.append(item);
+
+    while (updated.size() > 50)
+        updated.removeLast();
+
+    if (file.open(QIODevice::WriteOnly))
+        file.write(QJsonDocument(updated).toJson(QJsonDocument::Compact));
 }
 
 void TranslatorRunner::copyToClipboard(const QString &text)
