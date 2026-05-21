@@ -36,6 +36,9 @@ private:
     QString funUwu(const QString &text) const;
     QString funCheems(const QString &text) const;
 
+    // History
+    void saveToHistory(const QString &text, const QString &lang, const QString &result);
+
     // Clipboard + notifications
     void copyToClipboard(const QString &text);
     void showNotification(const QString &title, const QString &message);
@@ -44,6 +47,7 @@ private:
     static constexpr const char *TRIGGER_TRANSLATE_LANG = "tr-";
     static constexpr const char *TRIGGER_FX = "fx-";
     static constexpr const char *TRIGGER_FUN = "fun-";
+    static constexpr const char *TRIGGER_HISTORY = "trh:";
     static constexpr int TRANSLATE_TIMEOUT_MS = 3000;
 
     static const QHash<QString, QString> LANG_ALIASES;
